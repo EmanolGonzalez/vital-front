@@ -39,11 +39,12 @@ const CenterLogin = () => {
       // - if found and has admin: attempt login with provided password
       // - if found and no admin: open admin registration (skip password verification)
       let resolvedCenterId = centerId;
+      let lookupResult: { found?: boolean; centerId?: string; hasAdmin?: boolean } | null = null;
       if (!resolvedCenterId) {
         try {
-          const lookup = await api.post('/Centers/lookup', { identifier });
-          if (lookup?.found) resolvedCenterId = lookup.centerId;
-          // If lookup returned hasAdmin, we can branch later without extra calls
+          lookupResult = await api.post('/Centers/lookup', { identifier });
+          if (lookupResult?.found) resolvedCenterId = lookupResult.centerId;
+          // lookupResult may include hasAdmin — reuse it below to avoid a second request
         } catch (lookupErr) {
           // lookup failed (network/server) — fall back to previous behavior: try generic login
           const ok = await login(identifier, password);
@@ -68,31 +69,51 @@ const CenterLogin = () => {
         return;
       }
 
-      // We have a centerId — re-run lookup to read hasAdmin (or use cached lookup)
+      // We have a centerId — use cached lookupResult if available, otherwise fetch hasAdmin once
       try {
-        const lookup2 = await api.post('/Centers/lookup', { identifier });
-        const hasAdmin = !!lookup2?.hasAdmin;
+        const hasAdmin = lookupResult?.hasAdmin ?? (await (async () => {
+          const l = await api.post('/Centers/lookup', { identifier });
+          return !!l?.hasAdmin;
+        })());
+        // if lookupResult.hasAdmin is a boolean, use it; otherwise perform a single lookup
         if (hasAdmin) {
           // center has admin — attempt center-admin login
-          const res = await api.post(`/centers/${resolvedCenterId}/admin/login`, { email: identifier, password });
-          const token = res?.accessToken ?? res?.Token ?? res?.token ?? res?.tokenValue ?? res?.data?.token;
-          if (token) {
-            if (setTokenFromExternal) {
-              const ok = await setTokenFromExternal(token);
+          try {
+            const res = await api.post(`/centers/${resolvedCenterId}/admin/login`, { email: identifier, password });
+            const token = res?.accessToken ?? res?.Token ?? res?.token ?? res?.tokenValue ?? res?.data?.token;
+            if (token) {
+              if (setTokenFromExternal) {
+                const ok = await setTokenFromExternal(token);
+                if (ok) {
+                  toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
+                  navigate('/panel-centro');
+                  return;
+                }
+              }
+              setAccessToken(token);
+              toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
+              navigate('/panel-centro');
+              return;
+            }
+            // if no token returned, throw to trigger fallback
+            throw new Error('Center-admin login did not return a token');
+          } catch (centerLoginError: unknown) {
+            // If center-admin login failed (401 or other), attempt generic auth/login as fallback
+            try {
+              const ok = await login(identifier, password);
               if (ok) {
-                toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
+                toast({ title: "Acceso concedido", description: "Redirigiendo al panel" });
                 navigate('/panel-centro');
                 return;
               }
+            } catch {
+              // ignore — will show invalid credentials below
             }
-            setAccessToken(token);
-            toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
-            navigate('/panel-centro');
-            return;
+
+            toast({ title: "Credenciales inválidas", description: "Usuario o contraseña incorrectos.", variant: 'destructive' });
+            setShowRegister(false);
+            setShowCreateCenterCTA(false);
           }
-          toast({ title: "Credenciales inválidas", description: "Usuario o contraseña incorrectos.", variant: 'destructive' });
-          setShowRegister(false);
-          setShowCreateCenterCTA(false);
         } else {
           // No admin yet — show registration
           setShowRegister(true);

@@ -10,7 +10,7 @@ const initialState = {
   isActive: true,
 };
 
-const UserForm = ({ user, onCreate, onUpdate, onCancel }) => {
+const UserForm = ({ user, onCreate, onUpdate, onCancel, hideHeader = false }) => {
   const [form, setForm] = useState(initialState);
 
   useEffect(() => {
@@ -49,8 +49,10 @@ const UserForm = ({ user, onCreate, onUpdate, onCancel }) => {
 
   return (
     <section className="mb-8">
-      <h2 className="text-2xl font-bold mb-6 text-primary">{user ? "Editar usuario" : "Alta de usuario"}</h2>
-      <form className="bg-white dark:bg-background rounded-xl shadow-lg p-6 max-w-lg mx-auto" onSubmit={handleSubmit}>
+      {!hideHeader && (
+        <h2 className="text-2xl font-bold mb-6 text-primary">{user ? "Editar usuario" : "Alta de usuario"}</h2>
+      )}
+      <form className={`bg-white dark:bg-background rounded-xl ${hideHeader ? '' : 'shadow-lg'} p-6 max-w-lg mx-auto`} onSubmit={handleSubmit}>
         <div className="mb-4 grid grid-cols-2 gap-4">
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Nombre</label>

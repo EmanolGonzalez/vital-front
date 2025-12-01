@@ -30,7 +30,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Verificar si hay token guardado y obtener usuario
-    const token = localStorage.getItem('ilumina_token');
+    // Support multiple token keys for compatibility: prefer 'ilumina_token', fall back to 'token'
+    const token = localStorage.getItem('ilumina_token') ?? localStorage.getItem('token');
     if (token) {
       setAccessToken(token);
       api.get('/auth/me')
@@ -40,16 +41,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: data.name || data.user?.name || '',
             email: data.email || data.user?.email || '',
             role: data.role || data.user?.role || 'patient',
-            avatar: data.avatar,
-            phone: data.phone,
-            specialization: data.specialization,
-            department: data.department
+            avatar: data.avatar || data.user?.avatar,
+            phone: data.phone || data.user?.phone,
+            specialization: data.specialization || data.user?.specialization,
+            department: data.department || data.user?.department
           });
         })
         .catch(() => {
           setUser(null);
           clearAccessToken();
           localStorage.removeItem('ilumina_token');
+          localStorage.removeItem('token');
         })
         .finally(() => setIsLoading(false));
     } else {
@@ -61,8 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
-      setAccessToken(res.accessToken);
-      localStorage.setItem('ilumina_token', res.accessToken);
+      // backend may return token under different property names (Token, token, accessToken)
+      const token = res?.accessToken ?? res?.Token ?? res?.token;
+      if (!token) throw new Error('Login response missing token');
+      setAccessToken(token);
+      localStorage.setItem('ilumina_token', token);
       // Obtener usuario actual
       const userData = await api.get('/auth/me');
       setUser({

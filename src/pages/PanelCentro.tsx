@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import api from "@/lib/apiClient";
+import { mockCenters, mockAppointments } from '@/data/mockData';
+import { parseISO } from 'date-fns';
 
 const PanelCentro = () => {
   const [panel, setPanel] = useState<{
@@ -9,6 +11,9 @@ const PanelCentro = () => {
     centerEmail?: string;
     adminEmail?: string;
     adminName?: string;
+    staffCount?: number;
+    occupancyPercent?: number;
+    appointmentsToday?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,8 +23,22 @@ const PanelCentro = () => {
   useEffect(() => {
     const fetchPanel = async () => {
       try {
-        const data = await api.get(`/centers/${centerId}/admin/panel?email=${adminEmail}`);
-        setPanel(data);
+        if (!centerId) {
+          // fall back to mock data when no centerId provided
+          const c = mockCenters[0];
+          setPanel({
+            centerName: c.name,
+            centerEmail: c.email,
+            adminEmail: c.adminEmail,
+            adminName: c.adminName,
+            staffCount: c.staffCount,
+            occupancyPercent: c.occupancyPercent,
+            appointmentsToday: c.appointmentsToday ?? mockAppointments.length
+          });
+        } else {
+          const data = await api.get(`/centers/${centerId}/admin/panel?email=${adminEmail}`);
+          setPanel(data);
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {

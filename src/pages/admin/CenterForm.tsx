@@ -2,7 +2,7 @@ import React from "react";
 import { createCenter, updateCenter } from "../../lib/centerApi";
 import { toast } from "sonner";
 
-const CenterForm: React.FC<{ center: any, onClose: () => void, onSaved: () => void }> = ({ center, onClose, onSaved }) => {
+const CenterForm: React.FC<{ center: any, onClose: () => void, onSaved: () => void, hideHeader?: boolean }> = ({ center, onClose, onSaved, hideHeader = false }) => {
   const [centerName, setCenterName] = React.useState(center?.centerName || "");
   const [address, setAddress] = React.useState(center?.address || "");
   const [contactEmail, setContactEmail] = React.useState(center?.contactEmail || "");
@@ -42,7 +42,7 @@ const CenterForm: React.FC<{ center: any, onClose: () => void, onSaved: () => vo
   };
 
   return (
-    <form className="bg-white dark:bg-background rounded-xl shadow-lg p-6 max-w-lg mx-auto mb-8" onSubmit={handleSubmit}>
+    <form className={`bg-white dark:bg-background rounded-xl ${hideHeader ? '' : 'shadow-lg'} p-6 max-w-lg mx-auto mb-8`} onSubmit={handleSubmit}>
       <div className="mb-4">
         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Nombre del Centro</label>
         <input

@@ -80,6 +80,17 @@ export interface Doctor {
   rating: number;
 }
 
+export interface Center {
+  id: string;
+  name: string;
+  email: string;
+  adminEmail: string;
+  adminName: string;
+  staffCount: number;
+  occupancyPercent: number; // 0-100
+  appointmentsToday?: number;
+}
+
 // Mock data
 export const mockPatients: Patient[] = [
   {
@@ -242,6 +253,30 @@ export const mockPayments: Payment[] = [
     status: 'paid',
     concept: 'Suero Performance IV',
     treatmentId: '3'
+  }
+];
+
+// Example centers mock (used by PanelCentro and Admin dashboard)
+export const mockCenters: Center[] = [
+  {
+    id: 'c1',
+    name: 'Centro Ilumina Madrid',
+    email: 'madrid@ilumina.com',
+    adminEmail: 'admin@madrid.ilumina',
+    adminName: 'Laura Pérez',
+    staffCount: 12,
+    occupancyPercent: 72,
+    appointmentsToday: 14
+  },
+  {
+    id: 'c2',
+    name: 'Centro Ilumina Barcelona',
+    email: 'barcelona@ilumina.com',
+    adminEmail: 'admin@barcelona.ilumina',
+    adminName: 'Jordi Soler',
+    staffCount: 9,
+    occupancyPercent: 58,
+    appointmentsToday: 9
   }
 ];
 

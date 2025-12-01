@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import CenterList from "./CenterList";
 import CenterForm from "./CenterForm";
@@ -29,15 +30,23 @@ const AdminCenters: React.FC = () => {
               Nuevo Centro
             </button>
           </div>
-          {showForm ? (
-            <CenterForm
-              center={editingCenter}
-              onClose={() => setShowForm(false)}
-              onSaved={handleSaved}
-            />
-          ) : (
-            <CenterList onEdit={center => { setEditingCenter(center); setShowForm(true); }} reloadFlag={reloadFlag} />
-          )}
+          <CenterList onEdit={center => { setEditingCenter(center); setShowForm(true); }} reloadFlag={reloadFlag} />
+          {showForm && ReactDOM.createPortal(
+            <div className="fixed inset-0 z-50 flex">
+              <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setShowForm(false)} />
+              <div className="ml-auto w-full max-w-lg h-full bg-white dark:bg-background shadow-xl p-6 overflow-auto relative z-50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold">{editingCenter ? 'Editar centro' : 'Alta de centro'}</h3>
+                  <button className="text-gray-500 hover:text-gray-700" onClick={() => setShowForm(false)}>Cerrar</button>
+                </div>
+                <CenterForm
+                  center={editingCenter}
+                  hideHeader={true}
+                  onClose={() => setShowForm(false)}
+                  onSaved={() => { setShowForm(false); handleSaved(); }}
+                />
+              </div>
+            </div>, document.body)}
         </div>
       </DashboardLayout>
     </>

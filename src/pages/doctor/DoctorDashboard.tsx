@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockAppointments, mockPatients, mockTreatments } from "@/data/mockData";
+import { mockAppointments, mockPatients, mockTreatments, mockDoctors } from "@/data/mockData";
+import { parseISO } from 'date-fns';
 import { DoctorPatientModal } from "@/components/modals/DoctorPatientModal";
 import { DoctorScheduleModal } from "@/components/modals/DoctorScheduleModal";
 import { DoctorAnalyticsModal } from "@/components/modals/DoctorAnalyticsModal";
@@ -44,8 +45,26 @@ export default function DoctorDashboard() {
   const todayAppointments = doctorAppointments.filter(apt => 
     apt.date === format(new Date(), 'yyyy-MM-dd') && apt.status === 'scheduled'
   );
-  const totalPatients = mockPatients.length;
-  const monthlyRevenue = mockTreatments.reduce((sum, treatment) => sum + treatment.price, 0);
+
+  // Patients assigned (from mockDoctors if available)
+  const doctorInfo = mockDoctors.find(d => d.id === user?.id);
+  const totalPatients = doctorInfo ? doctorInfo.patientsCount : mockPatients.length;
+
+  // Revenue for this doctor this month
+  const now = new Date();
+  const monthlyRevenue = mockTreatments.reduce((sum, treatment) => {
+    try {
+      if (treatment.doctorId === user?.id) {
+        const d = parseISO(treatment.date);
+        if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) {
+          return sum + (treatment.price || 0);
+        }
+      }
+    } catch {
+      return sum;
+    }
+    return sum;
+  }, 0);
 
   const getStatusColor = (status: string) => {
     switch (status) {

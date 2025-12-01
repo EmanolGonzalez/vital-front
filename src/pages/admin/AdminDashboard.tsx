@@ -4,7 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockAppointments, mockPatients, mockTreatments, mockPayments } from "@/data/mockData";
+import api from '@/lib/apiClient';
+import { mockAppointments, mockPatients, mockTreatments, mockPayments, mockCenters } from "@/data/mockData";
+import { useEffect, useState } from 'react';
+import { parseISO, differenceInDays } from 'date-fns';
 import { 
   Users, 
   Calendar, 
@@ -22,18 +25,84 @@ import { es } from "date-fns/locale";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  
-  const totalPatients = mockPatients.length;
-  const todayAppointments = mockAppointments.filter(apt => 
-    apt.date === format(new Date(), 'yyyy-MM-dd')
-  ).length;
-  const monthlyRevenue = mockPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const [summary, setSummary] = useState<{
+    totalPatients: number;
+    patientsActive30Days: number;
+    centersCount: number;
+    appointmentsToday: number;
+    monthlyRevenue: number;
+    pendingInvoices: number;
+    newPatientsThisWeek: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const [summaryData, activityData] = await Promise.all([
+          api.get('/admin/summary'),
+          api.get('/admin/activity?take=6')
+        ]);
+        if (mounted) {
+          setSummary(summaryData);
+          // @ts-ignore
+          setActivity(activityData);
+        }
+      } catch (err: any) {
+        console.error('Error loading admin summary', err);
+        if (mounted) setError(err?.message ?? String(err));
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+  const [activity, setActivity] = useState<Array<{ type: string; title: string; description?: string; occurredAt: string }>>([]);
+
+  const totalPatients = summary?.totalPatients ?? mockPatients.length;
+  const today = new Date();
+  const todayStr = format(today, 'yyyy-MM-dd');
+  const todayAppointments = summary?.appointmentsToday ?? mockAppointments.filter(apt => apt.date === todayStr).length;
+
+  // Revenue this month
+  const monthlyRevenue = summary?.monthlyRevenue ?? mockPayments.reduce((sum, payment) => {
+    try {
+      const d = parseISO(payment.date);
+      if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()) {
+        return sum + payment.amount;
+      }
+    } catch {
+      return sum;
+    }
+    return sum;
+  }, 0);
+
   const completedTreatments = mockTreatments.filter(t => t.status === 'completed').length;
 
-  // Mock data for admin stats
-  const pendingInvoices = 3;
-  const lowStock = 2;
-  const newPatients = 8;
+  // New computed stats
+  const patientsActive30 = summary?.patientsActive30Days ?? mockPatients.filter(p => {
+    try {
+      const d = parseISO(p.lastVisit);
+      return differenceInDays(today, d) <= 30;
+    } catch {
+      return false;
+    }
+  }).length;
+
+  const centersCount = summary?.centersCount ?? mockCenters.length;
+  const pendingInvoices = summary?.pendingInvoices ?? mockPayments.filter(p => p.status === 'pending').length;
+  const lowStock = 2; // keep as placeholder
+  const newPatients = summary?.newPatientsThisWeek ?? mockPatients.filter(p => {
+    try {
+      const d = parseISO(p.lastVisit);
+      return differenceInDays(today, d) <= 7;
+    } catch {
+      return false;
+    }
+  }).length;
 
   return (
     <DashboardLayout title="Panel de Administración">
@@ -106,45 +175,28 @@ export default function AdminDashboard() {
                 Últimos movimientos del sistema
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 border border-border rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Pago recibido - María López</p>
-                    <p className="text-xs text-muted-foreground">€350 - Botox facial</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Hace 2h</span>
+              <CardContent>
+                <div className="space-y-4">
+                  {loading ? (
+                    <div className="text-sm text-muted-foreground">Cargando actividad...</div>
+                  ) : error ? (
+                    <div className="text-sm text-red-600">{error}</div>
+                  ) : activity.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No hay actividad reciente</div>
+                  ) : (
+                    activity.map((it, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 border border-border rounded-lg">
+                        <div className={`w-2 h-2 rounded-full ${it.type === 'patient' ? 'bg-green-500' : it.type === 'appointment' ? 'bg-blue-500' : it.type === 'treatment' ? 'bg-purple-500' : 'bg-gray-400'}`} />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{it.title}</p>
+                          {it.description && <p className="text-xs text-muted-foreground">{it.description}</p>}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{new Date(it.occurredAt).toLocaleString()}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
-                
-                <div className="flex items-center gap-3 p-3 border border-border rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Nueva cita agendada</p>
-                    <p className="text-xs text-muted-foreground">Carlos Ruiz - Consulta</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Hace 4h</span>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 border border-border rounded-lg">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Stock bajo - Ácido Hialurónico</p>
-                    <p className="text-xs text-muted-foreground">5 unidades restantes</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Hace 1d</span>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 border border-border rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Nuevo paciente registrado</p>
-                    <p className="text-xs text-muted-foreground">Ana Martín - Membresía Gold</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Hace 2d</span>
-                </div>
-              </div>
-            </CardContent>
+              </CardContent>
           </Card>
 
           {/* Quick Access */}

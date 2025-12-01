@@ -20,6 +20,9 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
+import { mockAppointments, mockTreatments, mockPatients } from '@/data/mockData';
+import { parseISO, isAfter, compareAsc } from 'date-fns';
 
 const PatientDashboard = () => {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
@@ -31,11 +34,32 @@ const PatientDashboard = () => {
     setQuickActionModalOpen(true);
   };
 
+  const { user } = useAuth();
+  const patientId = user?.id ?? '2';
+
+  // Next appointment for this patient
+  const futureAppointments = mockAppointments
+    .filter(a => a.patientId === patientId)
+    .map(a => ({...a, parsed: parseISO(a.date + 'T' + (a.time ?? '00:00:00'))}))
+    .filter(a => isAfter(a.parsed, new Date()))
+    .sort((a,b) => compareAsc(a.parsed, b.parsed));
+
+  const nextApt = futureAppointments.length > 0 ? futureAppointments[0] : null;
+
+  // Treatments completed this year
+  const currentYear = new Date().getFullYear();
+  const treatmentsCompletedThisYear = mockTreatments.filter(t => t.patientId === patientId && t.status === 'completed' && parseISO(t.date).getFullYear() === currentYear).length;
+
+  // Plan and savings
+  const patient = mockPatients.find(p => p.id === patientId);
+  const planActive = patient?.membershipType ?? 'N/A';
+  const saved = patient ? `€${Math.round(patient.totalSpent * 0.15)}` : '€0';
+
   const stats = [
-    { title: "Próxima Cita", value: "15 Ene", description: "10:30 - Botox Premium", icon: <Calendar className="w-5 h-5" /> },
-    { title: "Tratamientos", value: "4", description: "Completados este año", icon: <Stethoscope className="w-5 h-5" /> },
-    { title: "Plan Activo", value: "Gold", description: "Hasta Dic 2024", icon: <Star className="w-5 h-5" /> },
-    { title: "Ahorrado", value: "€380", description: "Con tu membresía", icon: <Gift className="w-5 h-5" /> }
+    { title: 'Próxima Cita', value: nextApt ? `${format(parseISO(nextApt.date), 'dd MMM')}` : 'Sin cita', description: nextApt ? `${nextApt.time} - ${nextApt.treatment}` : '', icon: <Calendar className="w-5 h-5" /> },
+    { title: 'Tratamientos', value: `${treatmentsCompletedThisYear}`, description: 'Completados este año', icon: <Stethoscope className="w-5 h-5" /> },
+    { title: 'Plan Activo', value: planActive, description: 'Membresía', icon: <Star className="w-5 h-5" /> },
+    { title: 'Ahorrado', value: saved, description: 'Estimado con membresía', icon: <Gift className="w-5 h-5" /> }
   ];
 
   return (

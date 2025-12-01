@@ -255,6 +255,16 @@ export const VitalityDashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Small extra stat: cambio biomarcadores */}
+          <div className="p-3 bg-background rounded-lg border border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Cambio biomarcadores (últ. mes)</p>
+                <p className="font-semibold">+6.2%</p>
+              </div>
+              <Badge className="bg-success/10 text-success">Mejora</Badge>
+            </div>
+          </div>
           <div className="flex items-start gap-3 p-3 bg-background rounded-lg">
             <Zap className="w-5 h-5 text-primary mt-1" />
             <div>

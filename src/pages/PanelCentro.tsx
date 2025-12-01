@@ -6,6 +6,7 @@ import api from "@/lib/apiClient";
 import { mockCenters, mockAppointments } from '@/data/mockData';
 import { parseISO, format } from 'date-fns';
 import { Users, Calendar, Settings, FileText } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PanelCentro = () => {
   const [panel, setPanel] = useState<any | null>(null);
@@ -13,6 +14,7 @@ const PanelCentro = () => {
   const [error, setError] = useState<string | null>(null);
   const centerId = ""; // obtener desde contexto o query param si está disponible
   const adminEmail = "";
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchPanel = async () => {
@@ -22,8 +24,12 @@ const PanelCentro = () => {
           setPanel({
             centerName: c.name,
             centerEmail: c.email,
-            adminEmail: c.adminEmail,
-            adminName: c.adminName,
+            // show admin info only from authenticated user / real API
+            adminEmail: user?.email ?? null,
+            adminName: user?.name ?? null,
+            adminAvatar: user?.avatar ?? null,
+            adminPhone: user?.phone ?? null,
+            adminRole: user?.role ?? null,
             staffCount: c.staffCount,
             occupancyPercent: c.occupancyPercent,
             appointments: mockAppointments.slice(0,5)
@@ -35,6 +41,9 @@ const PanelCentro = () => {
             centerEmail: data.contactEmail || data.centerEmail,
             adminEmail: data.adminEmail || data.email,
             adminName: data.adminName || data.name,
+            adminAvatar: data.adminAvatar || data.avatar,
+            adminPhone: data.adminPhone || data.phone,
+            adminRole: data.adminRole || data.role,
             staffCount: data.staffCount ?? 0,
             occupancyPercent: data.occupancyPercent ?? 0,
             appointments: data.recentAppointments ?? []
@@ -135,9 +144,23 @@ const PanelCentro = () => {
               <CardTitle>Información</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="font-semibold">{panel.centerName}</p>
-              <p className="text-sm text-muted-foreground">{panel.centerEmail}</p>
-              <p className="text-sm mt-2"><strong>Admin:</strong> {panel.adminName ?? panel.adminEmail}</p>
+                <div className="flex items-center gap-3">
+                  {panel.adminAvatar ? (
+                    <img src={panel.adminAvatar} alt="avatar" className="h-12 w-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-sm text-gray-600">{(panel.adminName || panel.adminEmail || 'A').charAt(0)}</div>
+                  )}
+                  <div>
+                    <p className="font-semibold">{panel.adminName ?? 'Sin administrador registrado'}</p>
+                    {panel.adminEmail ? (
+                      <p className="text-sm text-muted-foreground">{panel.adminEmail}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No hay email asociado</p>
+                    )}
+                  </div>
+                </div>
+                {panel.adminPhone && <p className="text-sm mt-2">Tel: {panel.adminPhone}</p>}
+                {panel.adminRole && <p className="text-sm text-muted-foreground mt-1">Rol: {panel.adminRole}</p>}
             </CardContent>
           </Card>
 

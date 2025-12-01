@@ -22,6 +22,7 @@ const CenterLogin = () => {
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
+  const [authInFlight, setAuthInFlight] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ const CenterLogin = () => {
 
       // We have a centerId — use cached lookupResult if available, otherwise fetch hasAdmin once
       try {
+            console.debug('Attempting center-admin login');
         const hasAdmin = lookupResult?.hasAdmin ?? (await (async () => {
           const l = await api.post('/Centers/lookup', { identifier });
           return !!l?.hasAdmin;
@@ -92,6 +94,7 @@ const CenterLogin = () => {
               }
               setAccessToken(token);
               toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
+              console.debug('Center-admin login failed, attempting generic auth/login fallback');
               navigate('/panel-centro');
               return;
             }
@@ -126,17 +129,18 @@ const CenterLogin = () => {
         toast({ title: 'Error comprobando centro', description: message, variant: 'destructive' });
       }
       } catch (err) {
-      // fallback
-      const fallback = checkCenterHasAdmin(identifier);
-      if (fallback) {
-        toast({ title: "Credenciales inválidas", description: "El centro tiene administrador. Verifica tu contraseña.", variant: "destructive" });
-      } else {
+        // fallback
+        const fallback = checkCenterHasAdmin(identifier);
+        if (fallback) {
+          toast({ title: "Credenciales inválidas", description: "El centro tiene administrador. Verifica tu contraseña.", variant: "destructive" });
+        } else {
         // no sabemos del centro; sugerir crear el centro
         setShowCreateCenterCTA(true);
         setShowRegister(false);
       }
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
+        setAuthInFlight(false);
     }
   };
 

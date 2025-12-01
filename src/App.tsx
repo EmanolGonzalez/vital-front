@@ -29,6 +29,7 @@ import FAQ from "./pages/FAQ";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import RequireAuth from "./components/auth/RequireAuth";
 import NotFound from "./pages/NotFound";
 import CenterLogin from "./pages/CenterLogin";
 
@@ -106,13 +107,13 @@ const App = () => {
                   <Route path="/noticias" element={<Noticias />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/faq" element={<FAQ />} />
-                  <Route path="/patient" element={<PatientDashboard />} />
-                  <Route path="/doctor" element={<DoctorDashboard />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/centers" element={<AdminCenters />} />
+                  <Route path="/patient" element={<RequireAuth><PatientDashboard /></RequireAuth>} />
+                  <Route path="/doctor" element={<RequireAuth role="doctor"><DoctorDashboard /></RequireAuth>} />
+                  <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboard /></RequireAuth>} />
+                  <Route path="/admin/users" element={<RequireAuth role="admin"><AdminUsers /></RequireAuth>} />
+                  <Route path="/admin/centers" element={<RequireAuth role="admin"><AdminCenters /></RequireAuth>} />
                   {/* Removed separate alta-admin-centro page — registration is now inline on /center-login */}
-                  <Route path="/panel-centro" element={<PanelCentro />} />
+                  <Route path="/panel-centro" element={<RequireAuth role="admin"><PanelCentro /></RequireAuth>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

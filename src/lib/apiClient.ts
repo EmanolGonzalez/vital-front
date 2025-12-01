@@ -23,6 +23,15 @@ async function request(path: string, options: RequestInit = {}) {
     headers
   });
 
+  // If the server returns 401, emit a global event so the app can react (logout/redirect)
+  if (res.status === 401) {
+    try { window.dispatchEvent(new CustomEvent('auth:unauthorized')); } catch { /* ignore */ }
+    const text401 = await res.text();
+    const data401 = text401 ? JSON.parse(text401) : null;
+    const message401 = data401?.error ?? data401?.message ?? res.statusText;
+    throw new Error(message401);
+  }
+
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
 

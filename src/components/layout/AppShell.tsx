@@ -16,13 +16,13 @@ export const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation();
   const { loadingStates } = useUX();
   
-  // Pages that should have minimal UI (login, etc.)
-  const isMinimalPage = ['/login'].includes(location.pathname);
+  // Pages that should have minimal UI (login, center login, onboarding forms, etc.)
+  const minimalPages = ['/login', '/center-login'];
+  const isMinimalPage = minimalPages.includes(location.pathname);
   
   // Dashboard pages that might have different layout
-  const isDashboard = ['/patient', '/doctor', '/admin'].some(path => 
-    location.pathname.startsWith(path)
-  );
+  const dashboardPaths = ['/patient', '/doctor', '/admin', '/panel-centro'];
+  const isDashboard = dashboardPaths.some(path => location.pathname.startsWith(path));
 
   return (
     <div className="min-h-screen w-full bg-background">

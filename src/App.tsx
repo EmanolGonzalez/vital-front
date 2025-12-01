@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import { TreatmentInfoModal } from "@/components/modals/TreatmentInfoModal";
 import { AppointmentModal } from "@/components/modals/AppointmentModal";
 import { ContractServiceModal } from "@/components/modals/ContractServiceModal";
+import { JoinTeamModal } from "@/components/modals/JoinTeamModal";
+import { CenterModal } from "@/components/modals/CenterModal";
 import AltaAdminCentro from "./pages/AltaAdminCentro";
 import PanelCentro from "./pages/PanelCentro";
 import AdminUsers from "./pages/AdminUsers";
@@ -36,6 +38,10 @@ const App = () => {
   const [treatmentModalOpen, setTreatmentModalOpen] = useState(false);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [joinTeamModalOpen, setJoinTeamModalOpen] = useState(false);
+  const [joinTeamPrefill, setJoinTeamPrefill] = useState<string>("");
+  const [centerModalOpen, setCenterModalOpen] = useState(false);
+  const [centerPrefillEmail, setCenterPrefillEmail] = useState("");
   const [treatmentType, setTreatmentType] = useState("");
   const [contractData, setContractData] = useState({ treatmentName: "", treatmentPrice: "" });
 
@@ -60,11 +66,23 @@ const App = () => {
     window.addEventListener('openTreatmentModal', handleOpenTreatmentModal);
     window.addEventListener('openAppointmentModal', handleOpenAppointmentModal);
     window.addEventListener('openContractModal', handleOpenContractModal);
+    const handleOpenJoinTeamModal = (e?: any) => {
+      setJoinTeamPrefill(e?.detail?.email ?? "");
+      setJoinTeamModalOpen(true);
+    };
+    const handleOpenCenterModal = (e?: any) => {
+      setCenterPrefillEmail(e?.detail?.email ?? "");
+      setCenterModalOpen(true);
+    };
+    window.addEventListener('openJoinTeamModal', handleOpenJoinTeamModal as EventListener);
+    window.addEventListener('openCenterModal', handleOpenCenterModal as EventListener);
 
     return () => {
       window.removeEventListener('openTreatmentModal', handleOpenTreatmentModal);
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal);
       window.removeEventListener('openContractModal', handleOpenContractModal);
+      window.removeEventListener('openJoinTeamModal', handleOpenJoinTeamModal as EventListener);
+      window.removeEventListener('openCenterModal', handleOpenCenterModal as EventListener);
     };
   }, []);
 
@@ -93,7 +111,7 @@ const App = () => {
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/centers" element={<AdminCenters />} />
-                  <Route path="/alta-admin-centro" element={<AltaAdminCentro />} />
+                  {/* Removed separate alta-admin-centro page — registration is now inline on /center-login */}
                   <Route path="/panel-centro" element={<PanelCentro />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
@@ -105,6 +123,16 @@ const App = () => {
                 open={treatmentModalOpen} 
                 onOpenChange={setTreatmentModalOpen}
                 treatmentType={treatmentType}
+              />
+              <JoinTeamModal
+                open={joinTeamModalOpen}
+                onOpenChange={setJoinTeamModalOpen}
+                prefillEmail={joinTeamPrefill}
+              />
+              <CenterModal
+                open={centerModalOpen}
+                onOpenChange={setCenterModalOpen}
+                prefillEmail={centerPrefillEmail}
               />
               <AppointmentModal 
                 open={appointmentModalOpen} 

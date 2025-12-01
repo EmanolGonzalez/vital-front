@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { HeroSection } from "@/components/sections/HeroSection";
@@ -13,7 +14,6 @@ import { PerformanceSection } from "@/components/sections/PerformanceSection";
 import { MembershipSection } from "@/components/sections/MembershipSection";
 import { ContactSection } from "@/components/sections/ContactSection";
 import { Footer } from "@/components/layout/Footer";
-import { TreatmentInfoModal } from "@/components/modals/TreatmentInfoModal";
 import { ContactModal } from "@/components/modals/ContactModal";
 import { MembershipModal } from "@/components/modals/MembershipModal";
 import { AppointmentModal } from "@/components/modals/AppointmentModal";
@@ -28,6 +28,7 @@ const Index = () => {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [firstVisitModalOpen, setFirstVisitModalOpen] = useState(false);
   const [joinTeamModalOpen, setJoinTeamModalOpen] = useState(false);
+  const [joinTeamPrefill, setJoinTeamPrefill] = useState<string>("");
   const [modalType, setModalType] = useState<string>("");
 
   const handleOpenTreatmentModal = (type: string = "") => {
@@ -82,7 +83,8 @@ const Index = () => {
       setFirstVisitModalOpen(true);
     };
 
-    const handleOpenJoinTeamModal = () => {
+    const handleOpenJoinTeamModal = (e?: any) => {
+      setJoinTeamPrefill(e?.detail?.email ?? "");
       setJoinTeamModalOpen(true);
     };
 
@@ -91,7 +93,7 @@ const Index = () => {
     window.addEventListener('openMembershipModal', handleOpenMembershipModal);
     window.addEventListener('openAppointmentModal', handleOpenAppointmentModal);
     window.addEventListener('openFirstVisitModal', handleOpenFirstVisitModal);
-    window.addEventListener('openJoinTeamModal', handleOpenJoinTeamModal);
+    window.addEventListener('openJoinTeamModal', handleOpenJoinTeamModal as EventListener);
 
     return () => {
       window.removeEventListener('openTreatmentModal', handleOpenTreatmentModal);
@@ -99,7 +101,7 @@ const Index = () => {
       window.removeEventListener('openMembershipModal', handleOpenMembershipModal);
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal);
       window.removeEventListener('openFirstVisitModal', handleOpenFirstVisitModal);
-      window.removeEventListener('openJoinTeamModal', handleOpenJoinTeamModal);
+      window.removeEventListener('openJoinTeamModal', handleOpenJoinTeamModal as EventListener);
     };
   }, []);
 
@@ -149,7 +151,6 @@ const Index = () => {
       </div>
 
       {/* Modals */}
-      {/* <TreatmentInfoModal ... /> eliminado, ya se gestiona globalmente en App.tsx */}
       <ContactModal
         open={contactModalOpen}
         onOpenChange={setContactModalOpen}
@@ -171,6 +172,7 @@ const Index = () => {
       <JoinTeamModal
         open={joinTeamModalOpen}
         onOpenChange={setJoinTeamModalOpen}
+        prefillEmail={joinTeamPrefill}
       />
     </div>
   );

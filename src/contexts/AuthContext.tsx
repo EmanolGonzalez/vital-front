@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  setTokenFromExternal?: (token: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,48 +27,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(null); // keep token in memory only
 
+  // Keep authentication token in memory only. Do not persist sensitive tokens to localStorage.
   useEffect(() => {
-    // Verificar si hay token guardado y obtener usuario
-    // Support multiple token keys for compatibility: prefer 'ilumina_token', fall back to 'token'
-    const token = localStorage.getItem('ilumina_token') ?? localStorage.getItem('token');
-    if (token) {
-      setAccessToken(token);
-      api.get('/auth/me')
-        .then(data => {
-          setUser({
-            id: data.id || data.user?.id || '',
-            name: data.name || data.user?.name || '',
-            email: data.email || data.user?.email || '',
-            role: data.role || data.user?.role || 'patient',
-            avatar: data.avatar || data.user?.avatar,
-            phone: data.phone || data.user?.phone,
-            specialization: data.specialization || data.user?.specialization,
-            department: data.department || data.user?.department
-          });
-        })
-        .catch(() => {
-          setUser(null);
-          clearAccessToken();
-          localStorage.removeItem('ilumina_token');
-          localStorage.removeItem('token');
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    // No persistent token on load; remain logged out until explicit login.
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
-      // backend may return token under different property names (Token, token, accessToken)
-      const token = res?.accessToken ?? res?.Token ?? res?.token;
-      if (!token) throw new Error('Login response missing token');
-      setAccessToken(token);
-      localStorage.setItem('ilumina_token', token);
+      const returnedToken = res?.accessToken ?? res?.Token ?? res?.token;
+      if (!returnedToken) throw new Error('Login response missing token');
+      setToken(returnedToken);
+      setAccessToken(returnedToken);
       // Obtener usuario actual
       const userData = await api.get('/auth/me');
       setUser({
@@ -84,21 +60,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (err) {
       setUser(null);
+      setToken(null);
       clearAccessToken();
-      localStorage.removeItem('ilumina_token');
       setIsLoading(false);
+      return false;
+    }
+  };
+
+  // Allow setting a token obtained from other endpoints (e.g. center-specific login)
+  const setTokenFromExternal = async (externalToken: string): Promise<boolean> => {
+    try {
+      setToken(externalToken);
+      setAccessToken(externalToken);
+      const userData = await api.get('/auth/me');
+      setUser({
+        id: userData.id || userData.user?.id || '',
+        name: userData.name || userData.user?.name || '',
+        email: userData.email || userData.user?.email || '',
+        role: userData.role || userData.user?.role || 'patient',
+        avatar: userData.avatar,
+        phone: userData.phone,
+        specialization: userData.specialization,
+        department: userData.department
+      });
+      return true;
+    } catch {
+      setToken(null);
+      clearAccessToken();
+      setUser(null);
       return false;
     }
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     clearAccessToken();
-    localStorage.removeItem('ilumina_token');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, setTokenFromExternal }}>
       {children}
     </AuthContext.Provider>
   );

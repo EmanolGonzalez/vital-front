@@ -7,15 +7,10 @@ import { setAccessToken } from './lib/apiClient'
 // Use `ilumina_token` as the canonical localStorage key so AuthContext picks it up.
 const devToken = import.meta.env.VITE_DEV_TOKEN as string | undefined;
 if (devToken && devToken.length > 0) {
+	// For dev only: set token in memory (do not persist to localStorage)
 	setAccessToken(devToken);
-	try { localStorage.setItem('ilumina_token', devToken); } catch {}
 } else {
-	// If token was stored in localStorage (manually pasted), apply it to api client
-	try {
-		// support legacy key 'token' as well
-		const stored = localStorage.getItem('ilumina_token') ?? localStorage.getItem('token');
-		if (stored) setAccessToken(stored);
-	} catch {}
+	// no persistent token by default in memory-only mode
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

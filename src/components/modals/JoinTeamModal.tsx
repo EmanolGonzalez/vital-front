@@ -1,5 +1,5 @@
 import api from "@/lib/apiClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,9 +29,10 @@ import { CenterModal } from "./CenterModal";
 interface JoinTeamModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillEmail?: string;
 }
 
-export const JoinTeamModal = ({ open, onOpenChange }: JoinTeamModalProps) => {
+export const JoinTeamModal = ({ open, onOpenChange, prefillEmail }: JoinTeamModalProps) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -48,6 +49,13 @@ export const JoinTeamModal = ({ open, onOpenChange }: JoinTeamModalProps) => {
     references: ""
   });
   const [centerModalOpen, setCenterModalOpen] = useState(false);
+
+  // When modal opens and a prefill email is provided, set it
+  useEffect(() => {
+    if (open && prefillEmail) {
+      setFormData((prev) => ({ ...prev, email: prefillEmail }));
+    }
+  }, [open, prefillEmail]);
 
   const positions = [
     {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip, ChipList } from "../ui/chip";
@@ -10,14 +10,19 @@ import api from "@/lib/apiClient";
 interface CenterModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillEmail?: string;
 }
 
-export const CenterModal = ({ open, onOpenChange }: CenterModalProps) => {
+export const CenterModal = ({ open, onOpenChange, prefillEmail }: CenterModalProps) => {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [services, setServices] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (open && prefillEmail) setEmail(prefillEmail);
+  }, [open, prefillEmail]);
 
   const defaultServices = [
     "Medicina Estética",

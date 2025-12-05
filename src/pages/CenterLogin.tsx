@@ -83,21 +83,20 @@ const CenterLogin = () => {
             try {
             const res = await api.post(`/centers/${resolvedCenterId}/admin/login`, { email: identifier, password });
             const token = res?.accessToken ?? res?.Token ?? res?.token ?? res?.tokenValue ?? res?.data?.token;
-            const refresh = res?.refreshToken ?? res?.RefreshToken ?? res?.refreshToken ?? res?.data?.refreshToken;
             const expiresAt = res?.expiresAt ?? res?.ExpiresAt ?? res?.expiresAt ?? res?.data?.expiresAt;
             if (token) {
               if (setTokenFromExternal) {
-                const ok = await setTokenFromExternal(token, refresh, expiresAt);
+                const ok = await setTokenFromExternal(token, expiresAt);
                 if (ok) {
                   toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
                   navigate('/panel-centro');
                   return;
                 }
               }
-              // fallback: set access token directly and persist refresh if present
+              // fallback: set access token directly and persist token+expires (no refresh in client)
               setAccessToken(token);
-              if (refresh && expiresAt) {
-                try { sessionStorage.setItem('auth', JSON.stringify({ token, refreshToken: refresh, expiresAt })); } catch (e) { /* ignore storage errors */ }
+              if (expiresAt) {
+                try { sessionStorage.setItem('auth', JSON.stringify({ token, expiresAt })); } catch (e) { /* ignore storage errors */ }
               }
               toast({ title: "Acceso concedido", description: "Redirigiendo al panel del centro" });
               console.debug('Center-admin login succeeded (fallback path)');
